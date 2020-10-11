@@ -1,3 +1,8 @@
+/*
+* FormCatcher.js
+* (c) Richard Franklin C
+*  october - 2020
+*/
 class FormCatcher{
     constructor(rules){
         this.rules = rules || {};
