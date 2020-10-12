@@ -1,5 +1,5 @@
 /*
-* FormCtacher.js
+* FormCatcher.js
 * https://github.com/Nobledsmarts/formCatcher
 * Richard Franklin C [Noble desmarts]
 * October 2020
