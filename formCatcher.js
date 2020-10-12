@@ -1,3 +1,10 @@
+/*
+* FormCtacher.js
+* https://github.com/Nobledsmarts/formCatcher
+* Richard Franklin C [Noble desmarts]
+* October 2020
+*/
+
 class FormCatcher{
     constructor(rules){
         this.rules = rules || {};
@@ -39,12 +46,14 @@ class FormCatcher{
                 let obj = {regexMch, inputValue, hasPermitEmpty};
                 if(ruleLabels.includes(ruleLabel)){
                     let ruleMethods = this.ruleMethods(obj);
-                    let condition = !ruleMethods[ruleLabel](key, formData, checks);
+                    let condition = !ruleMethods[ruleLabel]['run'](key, formData, checks);
+                    let defaultErrorMsg = ruleMethods[ruleLabel]['error'](key, formData, checks);
+                    let fieldError = groupErrors[key][ruleLabel] || defaultErrorMsg;
                     if(groupErrors[key]){
                         if(condition){
                             if( !errorsObj[key].length ){
-                                errorsObj[key].push(groupErrors[key][ruleLabel]);
-                                errors.push(groupErrors[key][ruleLabel]);
+                                errorsObj[key].push(fieldError);
+                                errors.push(fieldError);
                             }
                         }
                     }
@@ -58,8 +67,8 @@ class FormCatcher{
                             let condition = !!Object.keys(conditionObj).length;
                             if( condition ){
                                 if( !errorsObj[key].length ){
-                                    errorsObj[key].push(conditionObj.error || groupErrors[key][ruleLabel]);
-                                    errors.push(conditionObj.error || groupErrors[key][ruleLabel]);
+                                    errorsObj[key].push(conditionObj.error || groupErrors[key][ruleLabel] || key + ' Error !');
+                                    errors.push(conditionObj.error || groupErrors[key][ruleLabel] || key + ' Error !');
                                 }
                             }
                             if( isHasError ) return condition;
@@ -75,78 +84,187 @@ class FormCatcher{
         let [regexMch, inputValue, hasPermitEmpty] = Object.values(obj);
         let field = inputValue ? regexMch[3] : '';
         return {
-            alpha : () => {
-                return (/^([a-z])+$/ig.test(inputValue));
+            alpha : {
+                run : () => {
+                    return (/^([a-z])+$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain alphabets"
+                }
             },
-            alpha_space : () => {
-                return (/^([a-z\s])+$/ig.test(inputValue));
+            alpha_space : {
+                run : () => {
+                    return (/^([a-z\s])+$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain alphabets and spaces"
+                }
             },
-            alpha_dash : () => {
-                return (/^([a-z-_])+$/ig.test(inputValue));
+            alpha_dash : {
+                run : () => {
+                    return (/^([a-z-_])+$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain alphabets and dashes"
+                }
             },
-            alpha_numeric : () => {
-                return (/^([a-z0-9])+$/ig.test(inputValue));
+            alpha_numeric : {
+                run  : () => {
+                    return (/^([a-z0-9])+$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain alphabets and numbers"
+                }
             },
-            alpha_numeric_space : () => {
-                return (/^([a-z0-9\s])+$/ig.test(inputValue));
+            alpha_numeric_space : {
+                run  : () => {
+                    return (/^([a-z0-9\s])+$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain alphabets, numbers and spaces"
+                }
             },
-            alpha_numeric_punct : () => {
-                return (new RegExp("^([a-z0-9\s" + this.punct.join('') + "])+$", "ig").test(inputValue));
+            alpha_numeric_punct :  {
+                run : () => {
+                    return (new RegExp("^([a-z0-9\s" + this.punct.join('') + "])+$", "ig").test(inputValue));
+                }
             },
-            decimal : () => {
-                return (/^((\-|\+)?[0-9]\.[0-9])$/ig.test(inputValue));
+            decimal :  {
+                run : () => {
+                    return (/^((\-|\+)?[0-9]\.[0-9])$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain decimals"
+                }
             },
-            numeric : () => {
-                return (/^(\+|\-)?([0-9])+$/ig.test(inputValue));
+            numeric :  {
+                run : () => {
+                    return (/^(\+|\-)?([0-9])+$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain numeric values"
+                }
             },
-            is_natural : () => {
-                return (/^([0-9])+$/ig.test(inputValue));
+            is_natural :  {
+                run : () => {
+                    return (/^([0-9])+$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain natural numbers"
+                }
             },
-            is_natural_no_zero : () => {
-                return (/^([1-9][0-9]*)$/ig.test(inputValue));
+            is_natural_no_zero :  {
+                run : () => {
+                    return (/^([1-9][0-9]*)$/ig.test(inputValue));
+                },
+                error : (key) => {
+                    return key + " can only contain counting numbers"
+                }
             },
-            min_length : () => {
-               return (inputValue.length >= field);
+            min_length :  {
+                run : () => {
+                    return (inputValue.length >= field);
+                },
+                error : (key) => {
+                    return key + " length should not be less than " + field;
+                }
             },
-            max_length : () => {
-                return inputValue.length <= field;
+            max_length :  {
+                run : () => {
+                    return inputValue.length <= field;
+                },
+                error : (key) => {
+                    return key + " length should not be greater than " + field;
+                }
             },
-            exact_length : () => {
-                return inputValue.length === field;
+            exact_length :  {
+                run : () => {
+                    return inputValue.length === field;
+                },
+                error : (key) => {
+                    return key + " length should equal " + field;
+                }
             },
-            valid_email : () => {
-                return (/^[a-y-0-9._]+@[a-y-0-9_]+\.[a-z]{2,}$/).test(inputValue);
+            valid_email :  {
+                run : () => {
+                    return (/^[a-y-0-9._]+@[a-y-0-9_]+\.[a-z]{2,}$/).test(inputValue);
+                },
+                error : (key) => {
+                    return key + " should contain a valid email";
+                }
             },
-            less_than : () => {
-                return inputValue < +field;
+            less_than :  {
+                run : () => {
+                    return inputValue < +field;
+                },
+                error : (key) => {
+                    return key + " should be less than " + field;
+                }
             },
-            less_than_equal_to : () => {
-                return inputValue <= +field;
+            less_than_equal_to :  {
+                run : () => {
+                    return inputValue >= +field;
+                },
+                error : (key) => {
+                    return key + " should be less than or equal to " + field;
+                }
             },
-            greater_than : () => {
-                return inputValue > +field;
+            greater_than :  {
+                run : () => {
+                    return inputValue > +field;
+                },
+                error : (key) => {
+                    return key + " should be greater than " + field;
+                }
             },
-            greater_than_equal_to : () => {
-                return inputValue >= +field;
+            greater_than_equal_to :  {
+                run : () => {
+                    return inputValue >= +field;
+                },
+                error : (key) => {
+                    return key + " should be greater or equal to " + field;
+                }
             },
-            differs : (key, formData) => {
-                return  formData.get(field) !== inputValue 
+            differs : {
+                run : (key, formData) => {
+                    return  formData.get(field) !== inputValue 
+                }
             },
-            matches : (key, formData) => {
-               return formData.get(field) === inputValue
+            matches : {
+                run : (key, formData) => {
+                    return formData.get(field) === inputValue
+               },
+                error : (key, formDara) => {
+                    return key + " should contain same value as " + field;
+                }
             },
-            in_list : () => {
-                let list = field.split(',').map((el) => el.trim());
-                return list.includes(inputValue);
+            in_list :  {
+                run : () => {
+                    let list = field.split(',').map((el) => el.trim());
+                    return list.includes(inputValue);
+                },
+                error : (key, formDara) => {
+                    return key + " error ";
+                }
             },
-            required : () => {
-                return hasPermitEmpty ? true : inputValue;
+            required :  {
+                run : () => {
+                    return hasPermitEmpty ? true : inputValue;
+                },
+                error : (key, formDara) => {
+                    return key + " is required";
+                }
             },
-            regex_match : () => {
-                let regexHolder = field.split(',').map((e) => e.trim());
-                let regexStr = regexHolder[0];
-                let quantifier = regexHolder[1] || 'ig'
-                return (new RegExp(regexStr, quantifier).test(inputValue));
+            regex_match :  {
+                run : () => {
+                    let regexHolder = field.split(',').map((e) => e.trim());
+                    let regexStr = regexHolder[0];
+                    let quantifier = regexHolder[1] || 'ig'
+                    return (new RegExp(regexStr, quantifier).test(inputValue));
+                },
+                error : (key, formDara) => {
+                    return key + " error ";
+                }
             }
         }
     }
