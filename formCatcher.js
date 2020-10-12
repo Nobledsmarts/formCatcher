@@ -33,14 +33,13 @@ class FormCatcher{
                 let regexMch = (/^(.+?)(\[(.+?)\])?$/ig).exec(rule);
                 let ruleLabel = regexMch[1];
                 let inputValue = formValues[idx].trim();
-                // console.log(checks);
                 let hasPermitEmpty = checks.includes('permit_empty');
                 let groupErrors = this.rules[group + '_errors'];
                 let ruleLabels = Object.keys(this.ruleMethods());
                 let obj = {regexMch, inputValue, hasPermitEmpty};
                 if(ruleLabels.includes(ruleLabel)){
                     let ruleMethods = this.ruleMethods(obj);
-                    let condition = ruleMethods[ruleLabel](key, formData, checks);
+                    let condition = !ruleMethods[ruleLabel](key, formData, checks);
                     if(groupErrors[key]){
                         if(condition){
                             if( !errorsObj[key].length ){
@@ -76,72 +75,78 @@ class FormCatcher{
         let [regexMch, inputValue, hasPermitEmpty] = Object.values(obj);
         let field = inputValue ? regexMch[3] : '';
         return {
-            alpha : (key, formData) => {
-                return !(/^([a-z])+$/ig.test(inputValue));
+            alpha : () => {
+                return (/^([a-z])+$/ig.test(inputValue));
             },
-            alpha_space : (key, formData) => {
-                return !(/^([a-z\s])+$/ig.test(inputValue));
+            alpha_space : () => {
+                return (/^([a-z\s])+$/ig.test(inputValue));
             },
-            alpha_dash : (key, formData) => {
-                return !(/^([a-z-_])+$/ig.test(inputValue));
+            alpha_dash : () => {
+                return (/^([a-z-_])+$/ig.test(inputValue));
             },
-            alpha_numeric : (key, formData) => {
-                return !(/^([a-z0-9])+$/ig.test(inputValue));
+            alpha_numeric : () => {
+                return (/^([a-z0-9])+$/ig.test(inputValue));
             },
-            alpha_numeric_space : (key, formData) => {
-                return !(/^([a-z0-9\s])+$/ig.test(inputValue));
+            alpha_numeric_space : () => {
+                return (/^([a-z0-9\s])+$/ig.test(inputValue));
             },
-            alpha_numeric_punct : (key, formData) => {
-                return !(new RegExp("^([a-z0-9\s" + this.punct.join('') + "])+$", "ig").test(inputValue));
+            alpha_numeric_punct : () => {
+                return (new RegExp("^([a-z0-9\s" + this.punct.join('') + "])+$", "ig").test(inputValue));
             },
-            decimal : (key, formData) => {
-                return !(/^((\-|\+)?[0-9]\.[0-9])$/ig.test(inputValue));
+            decimal : () => {
+                return (/^((\-|\+)?[0-9]\.[0-9])$/ig.test(inputValue));
             },
-            numeric : (key, formData) => {
-                return !(/^(\+|\-)?([0-9])+$/ig.test(inputValue));
+            numeric : () => {
+                return (/^(\+|\-)?([0-9])+$/ig.test(inputValue));
             },
-            is_natural : (key, formData) => {
-                return !(/^([0-9])+$/ig.test(inputValue));
+            is_natural : () => {
+                return (/^([0-9])+$/ig.test(inputValue));
             },
-            is_natural_no_zero : (key, formData) => {
-                return !(/^([1-9][0-9]*)$/ig.test(inputValue));
+            is_natural_no_zero : () => {
+                return (/^([1-9][0-9]*)$/ig.test(inputValue));
             },
-            min_length : (key, formData) => {
-               return !(inputValue.length >= field);
+            min_length : () => {
+               return (inputValue.length >= field);
             },
-            max_length : (key, formData) => {
-                return inputValue.length < field;
+            max_length : () => {
+                return inputValue.length <= field;
             },
-            exact_length : (key, formData) => {
-                return inputValue.length !== field;
+            exact_length : () => {
+                return inputValue.length === field;
             },
-            valid_email : (key, formData) => {
-                return !(/^[a-y-0-9._]+@[a-y-0-9_]+\.[a-z]{2,}$/).test(inputValue);
+            valid_email : () => {
+                return (/^[a-y-0-9._]+@[a-y-0-9_]+\.[a-z]{2,}$/).test(inputValue);
             },
-            less_than : (key, formData) => {
-                return inputValue >= +field;
-            },
-            less_than_equal_to : (key, formData) => {
-                return inputValue > +field;
-            },
-            greater_than : (key, formData) => {
-                return inputValue <= +field;
-            },
-            greater_than_equal_to : (key, formData) => {
+            less_than : () => {
                 return inputValue < +field;
             },
+            less_than_equal_to : () => {
+                return inputValue <= +field;
+            },
+            greater_than : () => {
+                return inputValue > +field;
+            },
+            greater_than_equal_to : () => {
+                return inputValue >= +field;
+            },
             differs : (key, formData) => {
-                return  formData.get(field) == inputValue 
+                return  formData.get(field) !== inputValue 
             },
             matches : (key, formData) => {
-               return formData.get(field) !== inputValue
+               return formData.get(field) === inputValue
             },
-            in_list : (key, formData) => {
+            in_list : () => {
                 let list = field.split(',').map((el) => el.trim());
-                return !list.includes(inputValue);
+                return list.includes(inputValue);
             },
-            required : (key, formData) => {
-                return hasPermitEmpty ? false : !inputValue;
+            required : () => {
+                return hasPermitEmpty ? true : inputValue;
+            },
+            regex_match : () => {
+                let regexHolder = field.split(',').map((e) => e.trim());
+                let regexStr = regexHolder[0];
+                let quantifier = regexHolder[1] || 'ig'
+                return (new RegExp(regexStr, quantifier).test(inputValue));
             }
         }
     }
@@ -152,8 +157,7 @@ class FormCatcher{
     getErrors(group, formData, field){
         let errors = this.pileError(group, formData, field, 'array');
         return errors;
-    }    
-
+    }
     setRule(group, field, ruleObj){
        if ( !this.rules[group] ) this.rules[group] = {};
        if ( !this.rules[group + '_errors'] ) this.rules[group + '_errors'] = {};
@@ -166,6 +170,20 @@ class FormCatcher{
     setRules(group, rules){
         for(let rule of rules){
             this.setRule(group, rule.field, rule);
+        }
+    }
+    setRulesMethod(group, field, ruleObject){
+        if ( !this.rules[group] ) throw Error('cant set set custom rules on ' + group + ', group doesnt exist');
+        if ( !(this.rules[group + '_rules']) ) this.rules[group + '_rules'] = {};
+        this.rules[group + '_rules'][field] = {
+            ...ruleObject,
+            ...this.rules[group + '_rules'][field]
+        } 
+    }
+    setRulesMethods(group, customRules){
+        if ( !this.rules[group] ) throw Error('cant set set custom rules on ' + group + ', group doesnt exist');
+        for(let field in customRules){
+            this.setRulesMethod(group, field, customRules[field])
         }
     }
 }
